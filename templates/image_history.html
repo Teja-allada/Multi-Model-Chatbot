@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" href="{{ url_for('static', filename='favicon.ico') }}" type="image/x-icon">
+    <title>Image History - AI Assistant Pro</title>
+    <style>
+        :root {
+            --primary-color: #2c3e50;
+            --secondary-color: #3498db;
+            --background-color: #f8f9fa;
+            --text-color: #2c3e50;
+            --accent-color: #e74c3c;
+            --shadow-color: rgba(0, 0, 0, 0.1);
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            margin: 0;
+            padding: 20px;
+            background-color: var(--background-color);
+            color: var(--text-color);
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+            padding: 30px 20px;
+            background-color: var(--primary-color);
+            color: white;
+            border-radius: 15px;
+            box-shadow: 0 4px 6px var(--shadow-color);
+            animation: fadeIn 1s ease-in-out;
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            font-size: 1.2rem;
+            opacity: 0.9;
+        }
+
+        .history-container {
+            background: white;
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 2px 15px var(--shadow-color);
+            margin-bottom: 30px;
+            animation: slideUp 0.5s ease-in-out;
+        }
+
+        .history-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 25px;
+            margin-top: 20px;
+        }
+
+        .history-item {
+            border: 1px solid #eee;
+            border-radius: 10px;
+            overflow: hidden;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .history-item:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+
+        .history-image {
+            width: 100%;
+            height: 200px;
+            object-fit: cover;
+        }
+
+        .history-content {
+            padding: 15px;
+        }
+
+        .history-model {
+            display: inline-block;
+            background-color: #e1f5fe;
+            color: #0277bd;
+            padding: 3px 8px;
+            border-radius: 4px;
+            font-size: 14px;
+            margin-bottom: 10px;
+        }
+
+        .history-description {
+            font-size: 14px;
+            color: #555;
+            margin-bottom: 10px;
+            max-height: 100px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            display: -webkit-box;
+            -webkit-line-clamp: 4;
+            -webkit-box-orient: vertical;
+        }
+
+        .history-time {
+            font-size: 12px;
+            color: #888;
+            text-align: right;
+        }
+
+        .nav-links {
+            text-align: center;
+            margin-top: 30px;
+        }
+
+        .nav-links a {
+            color: var(--secondary-color);
+            text-decoration: none;
+            margin: 0 15px;
+            padding: 10px 20px;
+            border-radius: 8px;
+            transition: background-color 0.3s ease, transform 0.2s ease;
+        }
+
+        .nav-links a:hover {
+            background-color: rgba(52, 152, 219, 0.1);
+            transform: translateY(-2px);
+        }
+
+        .empty-history {
+            text-align: center;
+            padding: 50px 20px;
+            color: #777;
+        }
+
+        .empty-history h3 {
+            font-size: 24px;
+            margin-bottom: 15px;
+        }
+
+        .btn {
+            background-color: var(--secondary-color);
+            color: white;
+            padding: 12px 25px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: background-color 0.3s ease, transform 0.2s ease;
+            text-decoration: none;
+            display: inline-block;
+        }
+
+        .btn:hover {
+            background-color: #2980b9;
+            transform: translateY(-2px);
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+            }
+            to {
+                opacity: 1;
+            }
+        }
+
+        @keyframes slideUp {
+            from {
+                transform: translateY(20px);
+                opacity: 0;
+            }
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>📚 Image Recognition History</h1>
+            <p>Past image analyses</p>
+        </div>
+
+        <div class="history-container">
+            {% if interactions %}
+                <div class="history-grid">
+                    {% for interaction in interactions %}
+                        <div class="history-item">
+                            <img src="{{ url_for('static', filename=interaction[1].replace('static/', '')) }}" alt="Image" class="history-image">
+                            <div class="history-content">
+                                <div class="history-model">{{ interaction[3] }}</div>
+                                <div class="history-description">{{ interaction[2][:200] }}{% if interaction[2]|length > 200 %}...{% endif %}</div>
+                                <div class="history-time">{{ interaction[4] }}</div>
+                                <a href="{{ url_for('ask_about_image', _method='POST') }}" onclick="event.preventDefault(); document.getElementById('view-form-{{ interaction[0] }}').submit();" class="btn" style="margin-top: 10px; font-size: 14px; padding: 8px 12px;">Ask Questions</a>
+                                <form id="view-form-{{ interaction[0] }}" action="{{ url_for('ask_about_image') }}" method="post" style="display: none;">
+                                    <input type="hidden" name="image_path" value="{{ interaction[1] }}">
+                                    <input type="hidden" name="question" value="Describe what you see in this image.">
+                                    <input type="hidden" name="model" value="llama3-8b-8192">
+                                </form>
+                            </div>
+                        </div>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <div class="empty-history">
+                    <h3>No image history yet</h3>
+                    <p>Upload and analyze images to see your history here.</p>
+                    <a href="{{ url_for('upload_image') }}" class="btn">Upload an Image</a>
+                </div>
+            {% endif %}
+        </div>
+
+        <div class="nav-links">
+            <a href="{{ url_for('index') }}">📝 Text Chat</a>
+            <a href="{{ url_for('upload_image') }}">🔍 Image Recognition</a>
+            <a href="{{ url_for('history') }}">📜 Chat History</a>
+        </div>
+    </div>
+</body>
+</html> 

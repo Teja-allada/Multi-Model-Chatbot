@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" href="{{ url_for('static', filename='favicon.ico') }}" type="image/x-icon">
+    <title>AI Assistant Pro</title>
+    <style>
+        :root {
+            --primary-color: #2c3e50;
+            --secondary-color: #3498db;
+            --background-color: #f8f9fa;
+            --text-color: #2c3e50;
+            --accent-color: #e74c3c;
+            --shadow-color: rgba(0, 0, 0, 0.1);
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            margin: 0;
+            padding: 20px;
+            background-color: var(--background-color);
+            color: var(--text-color);
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+            padding: 40px 20px;
+            background-color: var(--primary-color);
+            color: white;
+            border-radius: 15px;
+            box-shadow: 0 4px 6px var(--shadow-color);
+            animation: fadeIn 1s ease-in-out;
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            font-size: 1.2rem;
+            opacity: 0.9;
+        }
+
+        .main-form {
+            background: white;
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 2px 15px var(--shadow-color);
+            margin-bottom: 30px;
+            animation: slideUp 0.5s ease-in-out;
+        }
+
+        .form-group {
+            margin-bottom: 25px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 10px;
+            font-weight: 600;
+            color: var(--primary-color);
+        }
+
+        textarea {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            min-height: 120px;
+            font-size: 16px;
+            transition: border-color 0.3s ease;
+        }
+
+        textarea:focus {
+            border-color: var(--secondary-color);
+            outline: none;
+        }
+
+        select {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            font-size: 16px;
+            background: white;
+            transition: border-color 0.3s ease;
+        }
+
+        select:focus {
+            border-color: var(--secondary-color);
+            outline: none;
+        }
+
+        .btn {
+            background-color: var(--secondary-color);
+            color: white;
+            padding: 12px 25px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: background-color 0.3s ease, transform 0.2s ease;
+        }
+
+        .btn:hover {
+            background-color: #2980b9;
+            transform: translateY(-2px);
+        }
+
+        .answer-section {
+            background: white;
+            padding: 25px;
+            border-radius: 12px;
+            margin-top: 25px;
+            box-shadow: 0 2px 10px var(--shadow-color);
+            animation: fadeIn 0.5s ease-in-out;
+        }
+
+        .nav-links {
+            text-align: center;
+            margin-top: 30px;
+        }
+
+        .nav-links a {
+            color: var(--secondary-color);
+            text-decoration: none;
+            margin: 0 15px;
+            padding: 10px 20px;
+            border-radius: 8px;
+            transition: background-color 0.3s ease, transform 0.2s ease;
+        }
+
+        .nav-links a:hover {
+            background-color: rgba(52, 152, 219, 0.1);
+            transform: translateY(-2px);
+        }
+
+        .output-container {
+            margin: 2rem 0;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 2px 10px var(--shadow-color);
+            animation: slideUp 0.5s ease-in-out;
+        }
+
+        .output-header {
+            background: var(--primary-color);
+            color: white;
+            padding: 1rem;
+        }
+
+        .output-content {
+            background: #f8f9fa;
+            padding: 1.5rem;
+        }
+
+        .output-content pre {
+            margin: 0;
+            font-family: 'Fira Code', monospace;
+            white-space: pre-wrap;
+            line-height: 1.5;
+            color: var(--text-color);
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+            }
+            to {
+                opacity: 1;
+            }
+        }
+
+        @keyframes slideUp {
+            from {
+                transform: translateY(20px);
+                opacity: 0;
+            }
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🤖 AI Ensemble Chat bot</h1>
+        </div>
+
+        <div class="main-form">
+            <form action="{{ url_for('ask') }}" method="post">
+                <div class="form-group">
+                    <label for="question">Your Question:</label>
+                    <textarea id="question" name="question" placeholder="Enter your question here..."></textarea>
+                </div>
+
+                <div class="form-group">
+                    <label for="model">Select AI Model:</label>
+                    <select id="model" name="model">
+                        <option value="llama3-70b-8192">Llama 3 70B (Most Powerful)</option>
+                        <option value="mixtral-8x7b-32768">Mixtral 8x7B (Best for Coding)</option>
+                        <option value="gemma2-9b-it">Gemma 9B (Fast & Efficient)</option>
+                        <option value="llama3-8b-8192">Llama 3 8B (Quick Responses)</option>
+                        <option value="deepseek-r1-distill-qwen-32b">DeepSeek Qwen (Specialized)</option>
+                    </select>
+                </div>
+
+                <button type="submit" class="btn">Ask AI Assistant</button>
+            </form>
+        </div>
+
+        {% with messages = get_flashed_messages() %}
+            {% if messages %}
+                <div class="answer-section">
+                    <h2>🧠 AI Response:</h2>
+                    {% for message in messages %}
+                        <div class="answer-content">{{ message }}</div>
+                    {% endfor %}
+                </div>
+            {% endif %}
+        {% endwith %}
+
+        {% with messages = get_flashed_messages() %}
+            {% if messages %}
+                <div class="output-container">
+                    <div class="output-header">
+                        <h3>🖥️ Program Output</h3>
+                    </div>
+                    <div class="output-content">
+                        {% for message in messages %}
+                            <pre>{{ message }}</pre>
+                        {% endfor %}
+                    </div>
+                </div>
+            {% endif %}
+        {% endwith %}
+
+        <div class="nav-links">
+            <a href="{{ url_for('history') }}">📚 View Chat History</a>
+            <a href="{{ url_for('analyze') }}">📊 Analyze Interactions</a>
+            <a href="{{ url_for('upload_image') }}">🔍 Image Recognition</a>
+        </div>
+    </div>
+</body>
+</html>

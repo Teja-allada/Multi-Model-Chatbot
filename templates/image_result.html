@@ -1,0 +1,343 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" href="{{ url_for('static', filename='favicon.ico') }}" type="image/x-icon">
+    <title>Image Analysis Results - AI Assistant Pro</title>
+    <style>
+        :root {
+            --primary-color: #2c3e50;
+            --secondary-color: #3498db;
+            --background-color: #f8f9fa;
+            --text-color: #2c3e50;
+            --accent-color: #e74c3c;
+            --shadow-color: rgba(0, 0, 0, 0.1);
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            margin: 0;
+            padding: 20px;
+            background-color: var(--background-color);
+            color: var(--text-color);
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+            padding: 30px 20px;
+            background-color: var(--primary-color);
+            color: white;
+            border-radius: 15px;
+            box-shadow: 0 4px 6px var(--shadow-color);
+            animation: fadeIn 1s ease-in-out;
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            font-size: 1.2rem;
+            opacity: 0.9;
+        }
+
+        .result-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 30px;
+            margin-bottom: 40px;
+        }
+
+        .image-container {
+            flex: 1;
+            min-width: 300px;
+            background: white;
+            padding: 20px;
+            border-radius: 15px;
+            box-shadow: 0 2px 15px var(--shadow-color);
+            animation: slideUp 0.5s ease-in-out;
+        }
+
+        .analysis-container {
+            flex: 2;
+            min-width: 300px;
+            background: white;
+            padding: 20px;
+            border-radius: 15px;
+            box-shadow: 0 2px 15px var(--shadow-color);
+            animation: slideUp 0.5s ease-in-out;
+        }
+
+        .image-display {
+            width: 100%;
+            max-height: 500px;
+            object-fit: contain;
+            border-radius: 8px;
+            margin-bottom: 15px;
+        }
+
+        .feature-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
+            padding: 15px;
+            background-color: #f1f1f1;
+            border-radius: 8px;
+        }
+
+        .feature-item {
+            padding: 10px;
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+
+        .feature-item h4 {
+            margin: 0 0 5px 0;
+            color: var(--secondary-color);
+        }
+
+        .description-box {
+            background-color: #f1f1f1;
+            padding: 20px;
+            border-radius: 8px;
+            margin-top: 20px;
+            position: relative;
+        }
+
+        .description-box::before {
+            content: '"';
+            font-size: 60px;
+            color: rgba(0,0,0,0.1);
+            position: absolute;
+            top: -15px;
+            left: 10px;
+        }
+
+        .description-text {
+            font-size: 18px;
+            line-height: 1.7;
+            position: relative;
+            z-index: 1;
+        }
+
+        .btn {
+            background-color: var(--secondary-color);
+            color: white;
+            padding: 12px 25px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: background-color 0.3s ease, transform 0.2s ease;
+            text-decoration: none;
+            display: inline-block;
+            margin-top: 20px;
+        }
+
+        .btn:hover {
+            background-color: #2980b9;
+            transform: translateY(-2px);
+        }
+
+        .nav-links {
+            text-align: center;
+            margin-top: 30px;
+        }
+
+        .nav-links a {
+            color: var(--secondary-color);
+            text-decoration: none;
+            margin: 0 15px;
+            padding: 10px 20px;
+            border-radius: 8px;
+            transition: background-color 0.3s ease, transform 0.2s ease;
+        }
+
+        .nav-links a:hover {
+            background-color: rgba(52, 152, 219, 0.1);
+            transform: translateY(-2px);
+        }
+
+        .section-title {
+            border-bottom: 2px solid var(--secondary-color);
+            padding-bottom: 10px;
+            margin-top: 30px;
+            margin-bottom: 20px;
+            font-size: 24px;
+            color: var(--primary-color);
+        }
+
+        .qa-section {
+            margin-top: 40px;
+        }
+
+        .qa-form textarea {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            font-size: 16px;
+            margin-bottom: 15px;
+            transition: border-color 0.3s ease;
+        }
+
+        .qa-form textarea:focus {
+            border-color: var(--secondary-color);
+            outline: none;
+        }
+
+        .qa-form select {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            font-size: 16px;
+            margin-bottom: 15px;
+            transition: border-color 0.3s ease;
+        }
+
+        .qa-answer {
+            margin-top: 20px;
+            padding: 15px;
+            background-color: #f9f9f9;
+            border-radius: 8px;
+            border-left: 4px solid var(--secondary-color);
+        }
+
+        .qa-history-container {
+            max-height: 400px;
+            overflow-y: auto;
+            margin-top: 10px;
+        }
+
+        .qa-history-item {
+            margin-bottom: 15px;
+            padding: 15px;
+            background-color: #f9f9f9;
+            border-radius: 8px;
+            border-left: 4px solid #ccc;
+        }
+
+        .qa-question {
+            font-weight: bold;
+            margin-bottom: 8px;
+        }
+
+        .qa-meta {
+            font-size: 12px;
+            color: #999;
+            margin-top: 8px;
+            text-align: right;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+            }
+            to {
+                opacity: 1;
+            }
+        }
+
+        @keyframes slideUp {
+            from {
+                transform: translateY(20px);
+                opacity: 0;
+            }
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🔍 Image Analysis Results</h1>
+            <p>AI-powered image recognition</p>
+        </div>
+
+        <div class="result-container">
+            <div class="image-container">
+                <img src="{{ url_for('static', filename=image_path.replace('static/', '').replace('\\', '/')) }}" alt="Analyzed Image" class="image-display">
+                <div class="section-title">Image Features</div>
+                <div class="feature-grid">
+                    {% for key, value in features.items() %}
+                        {% if key != 'error' %}
+                            <div class="feature-item">
+                                <h4>{{ key|capitalize }}</h4>
+                                <div>{{ value }}</div>
+                            </div>
+                        {% endif %}
+                    {% endfor %}
+                </div>
+            </div>
+
+            <div class="analysis-container">
+                <div class="section-title">AI Description</div>
+                <div class="description-box">
+                    <div class="description-text">{{ description }}</div>
+                </div>
+
+                <!-- Ask a question about this image -->
+                <div class="section-title qa-section">Ask AI About This Image</div>
+                <form action="{{ url_for('ask_about_image') }}" method="post" class="qa-form">
+                    <input type="hidden" name="image_path" value="{{ image_path }}">
+                    <textarea name="question" rows="3" placeholder="Ask any question about this image...">{{ current_question if current_question else '' }}</textarea>
+                    <select name="model">
+                        <option value="llama3-70b-8192">Llama 3 70B (Most Powerful)</option>
+                        <option value="llama3-8b-8192">Llama 3 8B (Quick Responses)</option>
+                        <option value="llama-3.2-11b-vision-preview">Llama 3.2 11B Vision (Latest)</option>
+                        <option value="llama-3.2-90b-vision-preview">Llama 3.2 90B Vision (Latest, Most Powerful)</option>
+                    </select>
+                    <button type="submit" class="btn">Ask Question</button>
+                </form>
+
+                <!-- Display current answer if any -->
+                {% if current_answer %}
+                <div class="qa-answer">
+                    <div class="qa-question">Your Question: {{ current_question }}</div>
+                    <div>{{ current_answer }}</div>
+                </div>
+                {% endif %}
+
+                <!-- Display Q&A history -->
+                {% if qa_history and qa_history|length > 0 %}
+                <div class="section-title qa-section">Previous Questions & Answers</div>
+                <div class="qa-history-container">
+                    {% for qa in qa_history %}
+                    <div class="qa-history-item">
+                        <div class="qa-question">Q: {{ qa[2] }}</div>
+                        <div>A: {{ qa[3] }}</div>
+                        <div class="qa-meta">{{ qa[5] }} | Model: {{ qa[4] }}</div>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% endif %}
+
+                <a href="{{ url_for('upload_image') }}" class="btn">Analyze Another Image</a>
+            </div>
+        </div>
+
+        <div class="nav-links">
+            <a href="{{ url_for('index') }}">📝 Text Chat</a>
+            <a href="{{ url_for('upload_image') }}">🔍 Image Recognition</a>
+            <a href="{{ url_for('image_history') }}">📚 Image History</a>
+            <a href="{{ url_for('history') }}">📜 Chat History</a>
+        </div>
+    </div>
+</body>
+</html> 
