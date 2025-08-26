@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, redirect, url_for, flash, g, jsonify
+from flask import Flask, render_template, request, redirect, url_for, flash, g, jsonify, session
 import sys
 import requests
 from colorama import init, Fore, Style
@@ -1016,11 +1016,23 @@ def ask():
     if AI_PROVIDER == 'gemini':
         model = os.environ.get('GEMINI_MODEL', GEMINI_DEFAULT_MODEL)
 
+    # Conversation history (last 5 turns)
+    chat_history = session.get('chat_history', [])  # list of {role, content}
+    # Build context string from recent history
+    history_text = "\n\n".join([
+        f"User: {h.get('question','')}\nAssistant: {h.get('answer','')}" for h in chat_history[-5:]
+    ])
+    composed_question = question if not history_text else f"Conversation so far:\n{history_text}\n\nCurrent question: {question}"
+
     # Get answer from the model
-    answer = get_answer(GROQ_API_KEY, question, model)
+    answer = get_answer(GROQ_API_KEY, composed_question, model)
 
     # Save interaction to database
     add_interaction(question, answer, model)
+
+    # Update session history
+    chat_history.append({"question": question, "answer": answer, "model": model})
+    session['chat_history'] = chat_history[-5:]
 
     # Flash the answer to the user
     flash(answer)
@@ -1060,6 +1072,53 @@ def upload_image():
     ]
     
     return render_template('upload_image.html', models=vision_models)
+
+@app.route('/dashboard')
+def dashboard():
+    """Simple analytics dashboard with counts."""
+    try:
+        conn = sqlite3.connect('interactions.db')
+        c = conn.cursor()
+        # Total queries
+        c.execute('SELECT COUNT(*) FROM interactions')
+        total = c.fetchone()[0]
+
+        # Most used model
+        try:
+            c.execute('SELECT model, COUNT(*) as cnt FROM interactions GROUP BY model ORDER BY cnt DESC LIMIT 1')
+            row = c.fetchone()
+            top_model = row[0] if row else 'unknown'
+            top_model_count = row[1] if row else 0
+        except Exception:
+            top_model, top_model_count = 'unknown', 0
+
+        # Daily usage (last 7 days)
+        c.execute("""
+            SELECT DATE(timestamp) as day, COUNT(*)
+            FROM interactions
+            WHERE DATE(timestamp) >= DATE('now','-6 day')
+            GROUP BY day
+            ORDER BY day ASC
+        """)
+        daily = c.fetchall()
+        conn.close()
+
+        # Normalize daily counts to include missing days
+        from datetime import datetime, timedelta
+        days = [(datetime.utcnow().date() - timedelta(days=i)).isoformat() for i in range(6,-1,-1)]
+        day_to_count = {d:0 for d in days}
+        for d,cnt in daily:
+            day_to_count[str(d)] = cnt
+
+        return render_template('dashboard.html',
+                               total=total,
+                               top_model=top_model,
+                               top_model_count=top_model_count,
+                               daily_labels=list(day_to_count.keys()),
+                               daily_values=list(day_to_count.values()))
+    except Exception as e:
+        flash(f"Dashboard error: {str(e)}", 'error')
+        return redirect(url_for('index'))
 
 @app.route('/image_history')
 def image_history():
