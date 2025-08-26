@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, redirect, url_for, flash, g
+from flask import Flask, render_template, request, redirect, url_for, flash, g, jsonify
 import sys
 import requests
 from colorama import init, Fore, Style
@@ -9,6 +9,7 @@ import re
 from sklearn.feature_extraction.text import CountVectorizer
 from sklearn.decomposition import LatentDirichletAllocation
 import os
+from dotenv import load_dotenv
 from werkzeug.utils import secure_filename
 import base64
 import io
@@ -36,6 +37,9 @@ except ImportError:
     PIL_AVAILABLE = False
     print("PIL (Pillow) not found. Image processing will be limited.")
 
+# Load environment variables from .env if present
+load_dotenv()
+
 # Initialize Flask app
 app = Flask(__name__)
 app.secret_key = 'your_secret_key'  # Required for flashing messages
@@ -52,15 +56,26 @@ os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
 # Initialize Colorama
 init(autoreset=True)
 
-# API constants
+# API/provider configuration
+AI_PROVIDER = os.environ.get("AI_PROVIDER", "groq").lower()  # 'groq' or 'gemini'
+
+# Groq
 GROQ_API_KEY = os.environ.get("GROQ_API_KEY")
-if not GROQ_API_KEY:
+if AI_PROVIDER == "groq" and not GROQ_API_KEY:
     print(Fore.RED + "WARNING: GROQ_API_KEY environment variable not set." + Style.RESET_ALL)
     print(Fore.YELLOW + "For image recognition to work, please set your Groq API key as an environment variable:" + Style.RESET_ALL)
     print(Fore.YELLOW + "  - Windows: set GROQ_API_KEY=your_api_key" + Style.RESET_ALL)
     print(Fore.YELLOW + "  - Mac/Linux: export GROQ_API_KEY=your_api_key" + Style.RESET_ALL)
     # Provide a dummy key for development that will cause a clear error message
     GROQ_API_KEY = "missing_api_key"
+
+# Gemini
+GOOGLE_API_KEY = os.environ.get("GOOGLE_API_KEY")
+GEMINI_DEFAULT_MODEL = os.environ.get("GEMINI_MODEL", "gemini-1.5-flash")
+if AI_PROVIDER == "gemini" and not GOOGLE_API_KEY:
+    print(Fore.RED + "WARNING: GOOGLE_API_KEY environment variable not set (Gemini)." + Style.RESET_ALL)
+    print(Fore.YELLOW + "Set it before starting the server:" + Style.RESET_ALL)
+    print(Fore.YELLOW + "  - export AI_PROVIDER=gemini; export GOOGLE_API_KEY=your_api_key" + Style.RESET_ALL)
 
 MAX_RETRIES = 3
 LONG_TIMEOUT = 120  # 2 minutes for code generation
@@ -267,6 +282,15 @@ def test_model_access(api_key, model_name):
 
 # Improved Groq API Integration for Code Generation
 def get_answer(api_key, question, model, is_code=False):
+    # Route to Gemini if selected
+    if AI_PROVIDER == "gemini":
+        try:
+            model_to_use = model or GEMINI_DEFAULT_MODEL
+            return get_answer_gemini(GOOGLE_API_KEY, question, model_to_use)
+        except Exception as e:
+            print(Fore.RED + f"Gemini error: {str(e)}" + Style.RESET_ALL)
+            return "I encountered an error while processing your request with Gemini."
+
     # Detect if this is a code-related question if not explicitly specified
     if not is_code:
         is_code = is_code_question(question)
@@ -339,6 +363,39 @@ def get_answer(api_key, question, model, is_code=False):
     except Exception as e:
         print(Fore.RED + f"An error occurred: {str(e)}" + Style.RESET_ALL)
         return "I encountered an error while processing your request."
+
+# Gemini text answer via REST API
+def get_answer_gemini(google_api_key, question, model):
+    if not google_api_key:
+        return "Missing GOOGLE_API_KEY. Please set it and restart."
+    try:
+        url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent"
+        params = {"key": google_api_key}
+        payload = {
+            "contents": [
+                {
+                    "parts": [
+                        {"text": question}
+                    ]
+                }
+            ]
+        }
+        print(Fore.YELLOW + f"Sending request to Gemini model: {model}..." + Style.RESET_ALL)
+        resp = requests.post(url, params=params, json=payload, timeout=60)
+        if resp.status_code != 200:
+            print(Fore.RED + f"Gemini error response: {resp.text}" + Style.RESET_ALL)
+            return "The Gemini API returned an error. Please check your key and model."
+        data = resp.json()
+        candidates = data.get("candidates", [])
+        if not candidates:
+            return "Gemini returned no candidates. Try a different prompt."
+        parts = candidates[0].get("content", {}).get("parts", [])
+        if parts and "text" in parts[0]:
+            return parts[0]["text"].strip()
+        return "Gemini returned an unexpected response format."
+    except Exception as e:
+        print(Fore.RED + f"Gemini exception: {str(e)}" + Style.RESET_ALL)
+        return "Error calling Gemini API."
 
 # Check if a response looks incomplete
 def looks_incomplete(answer):
@@ -924,10 +981,40 @@ def extract_image_features(image_path):
 def index():
     return render_template('index.html')
 
+@app.route('/health')
+def health():
+    try:
+        # Simple DB check
+        conn = sqlite3.connect(DATABASE_PATH)
+        conn.execute('SELECT 1')
+        conn.close()
+        status = 'ok'
+    except Exception as e:
+        status = f'db_error: {str(e)}'
+    return jsonify({
+        'status': status,
+        'provider': AI_PROVIDER,
+        'port': int(os.environ.get('PORT', 5000))
+    })
+
+@app.route('/config_debug')
+def config_debug():
+    # Do NOT expose secrets; just presence flags
+    return jsonify({
+        'AI_PROVIDER': AI_PROVIDER,
+        'GROQ_KEY_SET': bool(os.environ.get('GROQ_API_KEY')),
+        'GOOGLE_KEY_SET': bool(os.environ.get('GOOGLE_API_KEY')),
+        'GEMINI_MODEL': os.environ.get('GEMINI_MODEL', GEMINI_DEFAULT_MODEL),
+        'DATABASE_PATH': DATABASE_PATH
+    })
+
 @app.route('/ask', methods=['POST'])
 def ask():
     question = request.form['question']
-    model = request.form.get('model', 'llama-3.1-8b-instant')  # Default model
+    model = request.form.get('model', 'llama-3.1-8b-instant')  # Default model for Groq
+    # If Gemini provider is selected, force a valid Gemini model
+    if AI_PROVIDER == 'gemini':
+        model = os.environ.get('GEMINI_MODEL', GEMINI_DEFAULT_MODEL)
 
     # Get answer from the model
     answer = get_answer(GROQ_API_KEY, question, model)
@@ -1139,4 +1226,4 @@ def get_image_qa_history(image_path):
 # Run the Flask app
 if __name__ == '__main__':
     create_database()
-    app.run(debug=True)
+    app.run(debug=True, port=int(os.environ.get('PORT', 5000)))

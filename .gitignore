@@ -1,0 +1,26 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Virtual environments and env files
+.venv/
+.env
+
+# Editors
+.vscode/
+.cursor/
+
+# macOS
+.DS_Store
+static/.DS_Store
+
+# Databases and uploads
+instance/
+interactions.db
+static/uploads/
+
+# Byte-compiled / optimized / DLL files
+.pytest_cache/
+*.sqlite3

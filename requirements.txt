@@ -1,0 +1,8 @@
+flask==3.1.2
+requests==2.32.5
+colorama==0.4.6
+pandas==2.3.2
+scikit-learn==1.6.1
+pillow==11.3.0
+numpy==2.0.2
+python-dotenv==1.0.1

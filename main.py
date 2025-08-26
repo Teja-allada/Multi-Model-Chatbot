@@ -1,4 +1,5 @@
 import sys
+import os
 import requests
 from colorama import init, Fore, Style
 import sqlite3
@@ -19,7 +20,7 @@ except AttributeError:
 init(autoreset=True)
 
 # API constants
-GROQ_API_KEY = "you_grok_api_key"  # Your API key
+GROQ_API_KEY = os.environ.get("GROQ_API_KEY", "")  # Load from environment
 MAX_RETRIES = 3
 LONG_TIMEOUT = 120  # 2 minutes for code generation
 
