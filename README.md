@@ -1,10 +1,16 @@
-# Chatbot Multi-Model (Intermediate)
+# Gemini CLI (API-key only)
 
 ## What this project is
-- A Flask web app for Q&A and image uploads
-- Supports two AI providers via env: Groq or Gemini
-- Stores interactions in SQLite
-- Includes a CLI client (`main.py`)
+- A simple, medium-level command-line app for Q&A using Google Gemini via REST API only.
+- No Flask, no database, no browser/chat fallbacks. Strict API-key usage.
+
+## Available models (API-only)
+- Gemini 2.5 Pro: Advanced reasoning, best for coding, research, long context.
+- Gemini 2.5 Flash: Fast, cost-efficient multimodal tasks.
+- Gemini 2.5 Flash-Lite: Lightweight, cheaper, high-throughput.
+- Gemini Nano: On-device only (NOT available via API key; rejected by this app).
+
+The app asks you to choose a model for every question. If the model is unavailable over the API, it returns an error (no fallback to browser/chat or other providers).
 
 ## Quick start
 ```bash
@@ -13,56 +19,25 @@ source .venv/bin/activate
 pip install -U pip
 pip install -r requirements.txt
 
-# Choose ONE provider
-# Groq
-export AI_PROVIDER=groq
-export GROQ_API_KEY="gsk_..."
-
-# OR Gemini
-export AI_PROVIDER=gemini
+# Provide your Gemini API key
 export GOOGLE_API_KEY="AIza..."
-export GEMINI_MODEL="gemini-1.5-flash"
 
-export PORT=5001
-python app.py
-```
-
-Open `http://127.0.0.1:5001`.
-
-## Structure
-- `app.py`: Flask app (routes, DB init, provider calls)
-- `main.py`: CLI client for interactive Q&A
-- `templates/*`: HTML pages
-- `static/uploads`: saved images
-- `instance/database.db`: main SQLite database
-
-## Key routes
-- `/`: Ask a question
-- `/ask`: Handles Q&A, saves to DB
-- `/history`: View past Q&A
-- `/upload_image`: Upload image
-- `/ask_about_image`: Ask about uploaded image
-- `/image_history`: See image history
-- `/health`: Basic health JSON
-- `/config_debug`: Shows provider and config presence flags
-
-## Interview talking points
-- Provider abstraction: `AI_PROVIDER` switches between Groq (OpenAI-compatible chat completions) and Gemini (Google Generative Language API). We pass messages/parts to each API’s REST endpoint. Models differ: Groq uses `llama-*`, Gemini uses `gemini-*`.
-- Data model: SQLite tables for `interactions`, `images`, `image_qa`. Web app uses `instance/database.db`. Some legacy code references `interactions.db`; migration to a single DB is straightforward.
-- Image handling: Uses Pillow/NumPy. We extract simple features (dimensions, size, color stats). We do not send raw image bytes to the LLM; we craft a descriptive prompt from technical metadata.
-- Error handling: Warnings for missing keys; HTTP status checks; fallback messages. Health/config endpoints aid diagnostics without exposing secrets.
-- Security: Never log API keys. File uploads use `secure_filename`. Max upload size configured.
-- Extensibility: Provider module can be introduced to fully abstract AI calls (e.g., add OpenAI, Anthropic). Templates can be extended for chat history and streaming.
-
-## Common pitfalls
-- Using a Gemini key (`AIza...`) with Groq or vice versa. Ensure the right provider+key.
-- Port 5000 busy: set `PORT=5001`.
-- “command not found: python”: activate venv or use `python3`.
-
-## CLI usage
-```bash
-source .venv/bin/activate
+# Run the CLI
 python main.py
 ```
 
-Commands: `help`, `list_models`, `switch_model`, `code_mode`, `history`, `analyze`, `view`, `save`, `load`.
+## Usage
+- Type your question when prompted.
+- Select a model for that question: 1) 2.5 Pro, 2) 2.5 Flash, 3) 2.5 Flash-Lite, or type a model id.
+- If you select Gemini Nano, the app will error (Nano is on-device, not API-accessible).
+- The app prints the answer and keeps a short in-memory history for the session.
+
+Commands: `help`, `history`, `clear`, `exit`.
+
+## Notes
+- The app uses the REST endpoint `models/{model}:generateContent` and never falls back to browser/chat versions.
+- If a model returns an error or no candidates, you will see an error message and can try a different model.
+
+## Structure
+- `main.py`: Gemini-only CLI logic.
+- `requirements.txt`: minimal dependencies (requests, colorama, python-dotenv).
